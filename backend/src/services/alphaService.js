@@ -14,6 +14,10 @@ export async function getDailyData(symbol) {
     },
   });
 
+  if (!response.data["Time Series (Daily)"]) {
+    throw new Error(response.data["Note"] || response.data["Error Message"] || "Invalid API response for daily data");
+  }
+
   return response.data["Time Series (Daily)"];
 }
 
@@ -26,6 +30,10 @@ export async function getIntradayData(symbol) {
       apikey: process.env.ALPHA_API_KEY,
     },
   });
+
+  if (!response.data["Time Series (60min)"]) {
+    throw new Error(response.data["Note"] || response.data["Error Message"] || "Invalid API response for intraday data");
+  }
 
   return response.data["Time Series (60min)"];
 }

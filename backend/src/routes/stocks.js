@@ -20,6 +20,9 @@ router.get("/trending", async (req, res) => {
     const results = [];
 
     for (const symbol of STOCKS) {
+      // Add 1.5 second delay between requests to respect API rate limit
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
       let latest, past;
 
       if (range === "1h") {
@@ -37,9 +40,9 @@ router.get("/trending", async (req, res) => {
         if (range === "1d") {
           past = parseFloat(data[dates[1]]["4. close"]);
         } else if (range === "7d") {
-          past = parseFloat(data[dates[7]]["4. close"]);
+          past = parseFloat(data[dates[Math.min(7, dates.length - 1)]]["4. close"]);
         } else if (range === "1m") {
-          past = parseFloat(data[dates[30]]["4. close"]);
+          past = parseFloat(data[dates[Math.min(30, dates.length - 1)]]["4. close"]);
         }
       }
 
@@ -59,7 +62,8 @@ router.get("/trending", async (req, res) => {
 
     res.json(results);
   } catch (error) {
-    console.log(res.status(500).json({ error: "Failed to fetch stock data" }));
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch stock data" });
   }
 });
 
