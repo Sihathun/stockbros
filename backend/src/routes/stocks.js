@@ -59,7 +59,7 @@ router.get("/trending", async (req, res) => {
 
     res.json(results);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch stock data" });
+    console.log(res.status(500).json({ error: "Failed to fetch stock data" }));
   }
 });
 
