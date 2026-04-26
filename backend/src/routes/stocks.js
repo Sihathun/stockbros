@@ -1,6 +1,6 @@
 import express from "express";
 import NodeCache from "node-cache";
-import { getDailyData, getIntradayData } from "../services/finnhubService.js";
+import { getDailyData, getIntradayData, validateApiKey } from "../services/finnhubService.js";
 import { calculateTrend } from "../utils/trendCalculator.js";
 
 const router = express.Router();
@@ -116,3 +116,16 @@ router.get("/trending", async (req, res) => {
 });
 
 export default router;
+
+// Validate FINNHUB API key (simple helper endpoint)
+router.get('/validate-key', async (req, res) => {
+  try {
+    const result = await validateApiKey();
+    if (result.ok) return res.json({ ok: true, message: 'FINNHUB_API_KEY appears valid' });
+
+    const status = /No FINNHUB_API_KEY/i.test(result.error) ? 400 : 502;
+    return res.status(status).json({ ok: false, error: result.error });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message || String(err) });
+  }
+});

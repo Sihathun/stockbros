@@ -29,7 +29,15 @@ function App() {
         setStocks(response.data)
       } catch (error) {
         const serverData = error.response?.data
-        const detailedError = serverData?.details?.[0]?.message
+        const details = serverData?.details
+        let detailedError
+
+        if (Array.isArray(details)) {
+          detailedError = typeof details[0] === 'string' ? details[0] : details[0]?.message
+        } else if (typeof details === 'string') {
+          detailedError = details
+        }
+
         const serverError = serverData?.error
         setErrorMessage(detailedError || serverError || 'Could not load trending stocks.')
       } finally {
