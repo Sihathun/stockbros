@@ -2,17 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import axios from 'axios'
 import './App.css'
 
-const RANGE_OPTIONS = [
-  { value: '1m', label: '1 Month' },
-  { value: '7d', label: '7 Days' },
-  { value: '1d', label: '1 Day' },
-  { value: '1h', label: '1 Hour' },
-]
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://stockbros.vercel.app/'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000'
 
 function App() {
-  const [selectedRange, setSelectedRange] = useState('1d')
   const [stocks, setStocks] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
@@ -23,9 +15,7 @@ function App() {
       setErrorMessage('')
 
       try {
-        const response = await axios.get(`${API_BASE_URL}/api/stocks/trending`, {
-          params: { range: selectedRange },
-        })
+        const response = await axios.get(`${API_BASE_URL}/api/stocks/trending`)
         setStocks(response.data)
       } catch (error) {
         const serverData = error.response?.data
@@ -46,7 +36,7 @@ function App() {
     }
 
     fetchTrendingStocks()
-  }, [selectedRange])
+  }, [])
 
   const topStock = useMemo(() => {
     if (stocks.length === 0) return null
@@ -67,23 +57,8 @@ function App() {
       <header className="app-header">
         <p className="kicker">Stock Bros</p>
         <h1>Trending Stocks</h1>
-        <p className="subtitle">
-          Track top momentum and pick the strongest uptrend across time ranges.
-        </p>
+        <p className="subtitle">Track top momentum and current prices.</p>
       </header>
-
-      <section className="range-selector" aria-label="Select trend range">
-        {RANGE_OPTIONS.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            className={selectedRange === option.value ? 'active' : ''}
-            onClick={() => setSelectedRange(option.value)}
-          >
-            {option.label}
-          </button>
-        ))}
-      </section>
 
       {isLoading ? (
         <p className="status">Loading trending stocks...</p>
@@ -93,7 +68,7 @@ function App() {
         <>
           {topStock && (
             <section className="top-stock">
-              <p className="label">Most Uptrend ({RANGE_OPTIONS.find((x) => x.value === selectedRange)?.label})</p>
+              <p className="label">Most Uptrend</p>
               <div className="top-stock-row">
                 <h2>{topStock.symbol}</h2>
                 <span className={topStock.trend >= 0 ? 'trend positive' : 'trend negative'}>
