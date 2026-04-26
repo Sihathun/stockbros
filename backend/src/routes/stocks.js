@@ -1,6 +1,6 @@
 import express from "express";
 import NodeCache from "node-cache";
-import { getDailyData, getIntradayData } from "../services/alphaService.js";
+import { getDailyData, getIntradayData } from "../services/finnhubService.js";
 import { calculateTrend } from "../utils/trendCalculator.js";
 
 const router = express.Router();
@@ -8,7 +8,8 @@ const cache = new NodeCache({ stdTTL: 300 }); // 5 minutes
 
 const STOCKS = ["AAPL", "MSFT", "TSLA", "AMZN", "GOOGL"];
 
-const USE_MOCK = (process.env.USE_MOCK_ALPHA || "false").toLowerCase() === "true";
+// Allow either the new FINNHUB mock flag or the legacy ALPHA flag for convenience
+const USE_MOCK = (process.env.USE_MOCK_FINNHUB || process.env.USE_MOCK_ALPHA || "false").toLowerCase() === "true";
 
 router.get("/trending", async (req, res) => {
   const { range = "1d" } = req.query;
@@ -83,15 +84,15 @@ router.get("/trending", async (req, res) => {
     }
 
     if (results.length === 0) {
-      // Consolidate messages and detect rate-limit style responses
+      // Consolidate messages and detect rate/quota style responses
       const uniqueMessages = Array.from(new Set(errors.map(e => e.message)));
-      const rateLimitDetected = uniqueMessages.some(m => /rate limit|detected your api key|Note|daily rate limit/i.test(m));
+      const rateLimitDetected = uniqueMessages.some(m => /rate limit|exceed|quota|detected your api key|Note|daily rate limit|exceeded/i.test(m));
 
       if (rateLimitDetected) {
         return res.status(503).json({
-          error: "Alpha Vantage rate limit reached",
+          error: "Finnhub API limit reached",
           message:
-            "Alpha Vantage is rejecting requests (daily or per-second limits). Try again later, reduce request frequency, or configure your own API key.",
+            "Finnhub is rejecting requests (rate or quota limits). Try again later, reduce request frequency, or configure your own API key.",
           details: uniqueMessages,
         });
       }
