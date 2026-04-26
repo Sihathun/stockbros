@@ -18,40 +18,60 @@ router.get("/trending", async (req, res) => {
 
   try {
     const results = [];
+    const errors = [];
 
     for (const symbol of STOCKS) {
       // Add 1.5 second delay between requests to respect API rate limit
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      let latest, past;
+      try {
+        let latest, past;
 
-      if (range === "1h") {
-        const data = await getIntradayData(symbol);
-        const times = Object.keys(data);
+        if (range === "1h") {
+          const data = await getIntradayData(symbol);
+          const times = Object.keys(data);
 
-        latest = parseFloat(data[times[0]]["4. close"]);
-        past = parseFloat(data[times[1]]["4. close"]);
-      } else {
-        const data = await getDailyData(symbol);
-        const dates = Object.keys(data);
+          if (times.length < 2) {
+            throw new Error("Not enough intraday points");
+          }
 
-        latest = parseFloat(data[dates[0]]["4. close"]);
+          latest = parseFloat(data[times[0]]["4. close"]);
+          past = parseFloat(data[times[1]]["4. close"]);
+        } else {
+          const data = await getDailyData(symbol);
+          const dates = Object.keys(data);
 
-        if (range === "1d") {
-          past = parseFloat(data[dates[1]]["4. close"]);
-        } else if (range === "7d") {
-          past = parseFloat(data[dates[Math.min(7, dates.length - 1)]]["4. close"]);
-        } else if (range === "1m") {
-          past = parseFloat(data[dates[Math.min(30, dates.length - 1)]]["4. close"]);
+          if (dates.length < 2) {
+            throw new Error("Not enough daily points");
+          }
+
+          latest = parseFloat(data[dates[0]]["4. close"]);
+
+          if (range === "1d") {
+            past = parseFloat(data[dates[1]]["4. close"]);
+          } else if (range === "7d") {
+            past = parseFloat(data[dates[Math.min(7, dates.length - 1)]]["4. close"]);
+          } else if (range === "1m") {
+            past = parseFloat(data[dates[Math.min(30, dates.length - 1)]]["4. close"]);
+          }
         }
+
+        const trend = calculateTrend(latest, past);
+
+        results.push({
+          symbol,
+          latest,
+          trend,
+        });
+      } catch (error) {
+        errors.push({ symbol, message: error.message });
       }
+    }
 
-      const trend = calculateTrend(latest, past);
-
-      results.push({
-        symbol,
-        latest,
-        trend,
+    if (results.length === 0) {
+      return res.status(503).json({
+        error: "No stock data available right now",
+        details: errors,
       });
     }
 
@@ -63,7 +83,7 @@ router.get("/trending", async (req, res) => {
     res.json(results);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Failed to fetch stock data" });
+    res.status(500).json({ error: error.message || "Failed to fetch stock data" });
   }
 });
 

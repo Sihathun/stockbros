@@ -5,6 +5,19 @@ dotenv.config();
 
 const BASE_URL = "https://www.alphavantage.co/query";
 
+function parseTimeSeriesOrThrow(responseData, seriesKey, contextLabel) {
+  const series = responseData?.[seriesKey];
+  if (series) return series;
+
+  const message =
+    responseData?.Note ||
+    responseData?.Information ||
+    responseData?.["Error Message"] ||
+    `Invalid API response for ${contextLabel}`;
+
+  throw new Error(message);
+}
+
 export async function getDailyData(symbol) {
   const response = await axios.get(BASE_URL, {
     params: {
@@ -14,11 +27,7 @@ export async function getDailyData(symbol) {
     },
   });
 
-  if (!response.data["Time Series (Daily)"]) {
-    throw new Error(response.data["Note"] || response.data["Error Message"] || "Invalid API response for daily data");
-  }
-
-  return response.data["Time Series (Daily)"];
+  return parseTimeSeriesOrThrow(response.data, "Time Series (Daily)", "daily data");
 }
 
 export async function getIntradayData(symbol) {
@@ -31,9 +40,5 @@ export async function getIntradayData(symbol) {
     },
   });
 
-  if (!response.data["Time Series (60min)"]) {
-    throw new Error(response.data["Note"] || response.data["Error Message"] || "Invalid API response for intraday data");
-  }
-
-  return response.data["Time Series (60min)"];
+  return parseTimeSeriesOrThrow(response.data, "Time Series (60min)", "intraday data");
 }
